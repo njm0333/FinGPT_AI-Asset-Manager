@@ -8,7 +8,6 @@ class StoryPage(QWidget):
         super().__init__()
         self.stack = stack
 
-        # ---- 스토리 텍스트 ----
         story_texts = [
             "최근 들어 주식이 올랐다, 경제가 불안하다…\n이런 말들이 참 많이 들려오죠.",
             "하지만 막상 투자라고 하면\n어디서부터 시작해야 할지 막막한 당신.",
@@ -18,12 +17,10 @@ class StoryPage(QWidget):
             "지금보다 더 안정적인 내일을 위해,\n건전한 장기 투자의 첫걸음을\nFin GPT가 함께 합니다."
         ]
 
-        # ---- 카드 위젯 ----
         card = QFrame()
         card.setObjectName("card")
 
-        # ★ 카드 박스가 너무 작아 잘리는 문제 해결
-        card.setMinimumWidth(900)   # 메인 페이지처럼 넓게 보이도록 설정
+        card.setMinimumWidth(900)
 
         card_layout = QVBoxLayout()
         card_layout.setSpacing(24)
@@ -38,7 +35,6 @@ class StoryPage(QWidget):
             card_layout.addWidget(lbl)
             self.widgets.append(lbl)
 
-        # 마지막 버튼
         self.start_btn = QPushButton("투자성향 알아보기")
         self.start_btn.setFixedWidth(200)
         self.start_btn.clicked.connect(lambda: self.stack.setCurrentIndex(2))
@@ -47,7 +43,6 @@ class StoryPage(QWidget):
 
         card.setLayout(card_layout)
 
-        # 전체 레이아웃
         layout = QVBoxLayout()
         layout.addStretch()
         layout.addWidget(card, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -57,26 +52,21 @@ class StoryPage(QWidget):
 
         apply_global_style(self)
 
-        # 처음에 투명하게 만들기
         for w in self.widgets:
             eff = QGraphicsOpacityEffect()
             eff.setOpacity(0)
             w.setGraphicsEffect(eff)
 
-        # fade-in 실행
         QTimer.singleShot(0, self._start_fadein)
 
-    # ------------------------------
-    # SurveyPage 스타일의 순수 Fade-in
-    # ------------------------------
     def _start_fadein(self):
         for i, w in enumerate(self.widgets):
-            QTimer.singleShot(i * 1500, lambda w=w: self._fade_in(w))  # 각 위젯 간 1.5초 간격
+            QTimer.singleShot(i * 1, lambda w=w: self._fade_in(w))
 
     def _fade_in(self, widget):
         eff = widget.graphicsEffect()
         anim = QPropertyAnimation(eff, b"opacity", self)
-        anim.setDuration(1500)   # fade-in 시간 1.5초
+        anim.setDuration(1500)
         anim.setStartValue(0)
         anim.setEndValue(1)
         anim.setEasingCurve(QEasingCurve.Type.OutCubic)
