@@ -22,6 +22,9 @@ class StoryPage(QWidget):
         card = QFrame()
         card.setObjectName("card")
 
+        # ★ 카드 박스가 너무 작아 잘리는 문제 해결
+        card.setMinimumWidth(900)   # 메인 페이지처럼 넓게 보이도록 설정
+
         card_layout = QVBoxLayout()
         card_layout.setSpacing(24)
 
@@ -68,12 +71,12 @@ class StoryPage(QWidget):
     # ------------------------------
     def _start_fadein(self):
         for i, w in enumerate(self.widgets):
-            QTimer.singleShot(i * 300, lambda w=w: self._fade_in(w))
+            QTimer.singleShot(i * 1500, lambda w=w: self._fade_in(w))  # 각 위젯 간 1.5초 간격
 
     def _fade_in(self, widget):
         eff = widget.graphicsEffect()
         anim = QPropertyAnimation(eff, b"opacity", self)
-        anim.setDuration(700)
+        anim.setDuration(1500)   # fade-in 시간 1.5초
         anim.setStartValue(0)
         anim.setEndValue(1)
         anim.setEasingCurve(QEasingCurve.Type.OutCubic)

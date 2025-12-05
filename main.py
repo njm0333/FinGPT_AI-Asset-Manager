@@ -7,7 +7,7 @@ import sys
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = AppWindow()
-    win.resize(500, 750)
+    win.resize(1500, 1000)
     win.show()
     sys.exit(app.exec())
 
