@@ -1,5 +1,3 @@
-# windows/result_window.py
-
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QPushButton, QFrame,
     QGraphicsOpacityEffect, QSizePolicy
@@ -16,9 +14,6 @@ class ResultPage(QWidget):
         self.result = None
         self.animations = []
 
-        # ------------------------------
-        # 중앙 카드
-        # ------------------------------
         card = QFrame()
         card.setObjectName("card")
         card.setMinimumWidth(900)
@@ -32,9 +27,6 @@ class ResultPage(QWidget):
 
         self.widgets = []
 
-        # ------------------------------
-        # 카드 내부 텍스트
-        # ------------------------------
         self.title_label = QLabel("나의 투자 성향 결과")
         self.title_label.setObjectName("title")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -70,33 +62,24 @@ class ResultPage(QWidget):
         card_layout.addWidget(self.coaching_label)
         self.widgets.append(self.coaching_label)
 
-        # ------------------------------
-        # 다음 버튼 하나만
-        # ------------------------------
         self.next_button = QPushButton("투자 성향에 맞춘 포트폴리오 상담 받기")
         self.next_button.setFixedWidth(420)
         self.next_button.clicked.connect(self._go_next)
         self.widgets.append(self.next_button)
 
-        # ------------------------------
-        # 전체 레이아웃 (가운데 정렬)
-        # ------------------------------
         layout = QVBoxLayout()
         layout.setContentsMargins(32, 40, 32, 40)
         layout.setSpacing(32)
 
-        layout.addStretch(1)                     # 화면 위쪽 여백
+        layout.addStretch(1)
         layout.addWidget(card, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addSpacing(24)
         layout.addWidget(self.next_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addStretch(1)                     # 화면 아래 여백
+        layout.addStretch(1)
 
         self.setLayout(layout)
-
-        # 스타일 적용
         apply_global_style(self)
 
-        # 투명도 0으로 시작
         for w in self.widgets:
             eff = QGraphicsOpacityEffect()
             eff.setOpacity(0)
@@ -104,9 +87,6 @@ class ResultPage(QWidget):
 
         QTimer.singleShot(0, self._start_fadein)
 
-    # ------------------------------
-    # 결과 넣기
-    # ------------------------------
     def set_result(self, result: dict):
         self.result = result
 
@@ -119,9 +99,6 @@ class ResultPage(QWidget):
 
         self._reset_fadein()
 
-    # ------------------------------
-    # 코칭 텍스트
-    # ------------------------------
     def _build_coaching_text(self, risk_type: str) -> str:
         coaching_map = {
             "안정형": (
@@ -156,19 +133,11 @@ class ResultPage(QWidget):
             "설문 결과를 바탕으로 Fin GPT가 앞으로의 투자 여정을 함께 도와드릴게요."
         )
 
-    # ------------------------------
-    # 다음 페이지 이동 (여기서 원하는 창으로 바꾸면 됨)
-    # ------------------------------
     def _go_next(self):
-        # 예: 다음 페이지가 index = 4 라고 가정
         try:
             self.stack.setCurrentIndex(4)
         except:
             pass
-
-    # ------------------------------
-    # 페이드인
-    # ------------------------------
     def _start_fadein(self):
         for i, w in enumerate(self.widgets):
             QTimer.singleShot(i * 50, lambda w=w: self._fade(w))

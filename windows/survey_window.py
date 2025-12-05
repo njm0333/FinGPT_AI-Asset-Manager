@@ -1,5 +1,3 @@
-# windows/survey_window.py
-
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QPushButton, QVBoxLayout, QFrame,
@@ -7,11 +5,6 @@ from PyQt6.QtWidgets import (
 )
 
 from styles import apply_global_style
-
-
-# -----------------------------------------
-# 1) 문항별 보기 점수표 (네가 준 그대로)
-# -----------------------------------------
 scores = {
     1: {1: 12.5, 2: 12.5, 3: 9.3, 4: 6.2, 5: 3.1},
     2: {1: 3.1,  2: 6.2,  3: 9.3, 4: 12.5, 5: 15.6},
@@ -21,10 +14,6 @@ scores = {
     6: {1: 9.3,  2: 6.2,  3: 3.1, 4: None, 5: None},   # ④,⑤ 없음
     7: {1: -6.2, 2: 6.2,  3: 12.5, 4: 18.7, 5: None}   # ⑤ 없음
 }
-
-# -----------------------------------------
-# 2) 투자성향 설명문 (네가 준 그대로)
-# -----------------------------------------
 risk_profiles = {
     "안정형": "예금이나 적금 수준의 수익률을 기대하며, 투자원금에 손실이 발생하는 것을 원하지 않는다. "
            "원금 손실의 우려가 없는 상품에 투자하는 데 바람직하다.",
@@ -55,13 +44,6 @@ def classify_risk(total_score: float) -> str:
 
 
 def evaluate_investor(answers: dict) -> dict:
-    """
-    answers = {
-        1: 보기번호,
-        ...
-        7: 보기번호
-    }
-    """
     total = 0.0
 
     for q_num, choice in answers.items():
@@ -81,22 +63,12 @@ def evaluate_investor(answers: dict) -> dict:
 
 
 class SurveyPage(QWidget):
-    """
-    - 한 화면에 질문 하나씩 보여주는 설문 페이지
-    - 1~7번 모두 보기 하나 선택 시 바로 다음 질문으로
-    - 모든 질문이 끝나면 evaluate_investor로 투자성향 계산
-    """
-
     def __init__(self, stack):
         super().__init__()
         self.stack = stack              # QStackedWidget 같은 거 들어옴
         self.current_index = 0          # 현재 질문 인덱스 (0 ~ 6)
         self.answers: dict[int, int] = {}   # {문항번호: 보기번호}
         self.last_result: dict | None = None
-
-        # ------------------------------
-        # 실제 설문 질문 데이터 (내용 그대로, 3번도 단일 선택)
-        # ------------------------------
         self.questions = [
             {
                 "id": 1,
@@ -184,22 +156,16 @@ class SurveyPage(QWidget):
         self._build_ui()
         apply_global_style(self)
         self._load_question()
-
-    # ------------------------------
-    # UI 구성
-    # ------------------------------
     def _build_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(32, 24, 32, 24)
         main_layout.setSpacing(16)
 
-        # 진행률
         self.progress_label = QLabel("")
         self.progress_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.progress_label.setStyleSheet("font-size: 14px; font-weight: bold;")
         main_layout.addWidget(self.progress_label)
 
-        # 질문 타이틀 / 서브타이틀
         self.title_label = QLabel()
         self.title_label.setObjectName("title")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -213,7 +179,6 @@ class SurveyPage(QWidget):
         main_layout.addWidget(self.subtitle_label)
         main_layout.addSpacing(10)
 
-        # 카드 프레임
         self.card = QFrame()
         self.card.setObjectName("card")
         self.card.setMinimumWidth(900)
@@ -221,12 +186,10 @@ class SurveyPage(QWidget):
         self.card_layout = QVBoxLayout(self.card)
         self.card_layout.setSpacing(12)
 
-        # 최대 5개 보기 버튼(질문마다 4~5개 사용)
         self.option_buttons: list[QPushButton] = []
         for i in range(5):
             btn = QPushButton("")
             btn.setFixedHeight(60)
-            # idx=i 를 기본값으로 캡처해서 람다 버그 방지
             btn.clicked.connect(lambda checked, idx=i: self._on_option_clicked(idx))
             self.option_buttons.append(btn)
             self.card_layout.addWidget(btn)
@@ -234,20 +197,14 @@ class SurveyPage(QWidget):
         main_layout.addWidget(self.card, alignment=Qt.AlignmentFlag.AlignHCenter)
         main_layout.addStretch()
 
-    # ------------------------------
-    # 현재 질문을 UI에 로드
-    # ------------------------------
     def _load_question(self):
         q = self.questions[self.current_index]
 
-        # 진행률
         self.progress_label.setText(f"{self.current_index + 1} / {len(self.questions)}")
 
-        # 텍스트
         self.title_label.setText(q["title"])
         self.subtitle_label.setText(q["subtitle"])
 
-        # 보기 버튼 초기화 (모두 단일 선택)
         options = q["options"]
 
         for i, btn in enumerate(self.option_buttons):
@@ -257,23 +214,15 @@ class SurveyPage(QWidget):
             else:
                 btn.hide()
 
-        # 페이드인 효과
         self._fade_in(self.card)
 
-    # ------------------------------
-    # 보기 버튼 클릭 (모든 문항 단일 선택)
-    # ------------------------------
     def _on_option_clicked(self, idx: int):
         q = self.questions[self.current_index]
         qid = q["id"]
 
-        # 보기 번호는 1부터 시작
         self.answers[qid] = idx + 1
         self._go_next_or_finish()
 
-    # ------------------------------
-    # 다음 질문으로 이동 or 설문 종료
-    # ------------------------------
     def _go_next_or_finish(self):
         if self.current_index < len(self.questions) - 1:
             self.current_index += 1
@@ -281,9 +230,6 @@ class SurveyPage(QWidget):
         else:
             self._finish_survey()
 
-    # ------------------------------
-    # 설문 끝 → 투자 성향 계산
-    # ------------------------------
     def _finish_survey(self):
         # 모든 문항이 답변되었는지 확인
         missing = [
@@ -298,7 +244,6 @@ class SurveyPage(QWidget):
             )
             return
 
-        # 점수 계산
         try:
             result = evaluate_investor(self.answers)
         except Exception as e:
@@ -311,17 +256,11 @@ class SurveyPage(QWidget):
 
         self.last_result = result
 
-        # 결과 페이지 가져오기 (index 3: ResultPage)
         result_page = self.stack.widget(3)
         if hasattr(result_page, "set_result"):
             result_page.set_result(result)
-
-        # 페이지 이동
         self.stack.setCurrentIndex(3)
 
-    # ------------------------------
-    # 부드러운 페이드인
-    # ------------------------------
     def _fade_in(self, widget):
         effect = QGraphicsOpacityEffect()
         widget.setGraphicsEffect(effect)

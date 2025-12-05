@@ -10,18 +10,23 @@ import yfinance as yf
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import scale
 
-from PyQt6.QtCore import QDate
+from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget,
+    QWidget,
     QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QPushButton, QComboBox,
     QDateEdit, QTabWidget, QPlainTextEdit,
     QTableWidget, QTableWidgetItem, QMessageBox,
-    QSizePolicy
+    QSizePolicy, QFrame
 )
+
+
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+
+# ★ Fin GPT 스타일 공통 함수
+from styles import apply_global_style
 
 
 # =========================
@@ -131,13 +136,6 @@ def prepare_returns(price: pd.DataFrame) -> pd.DataFrame:
 def run_pca(returns: pd.DataFrame, n_factors: int = 4) -> PCAResult:
     """
     교과서의 'PCA for Algorithmic Trading: Eigen Portfolios' 로직 그대로 구현
-
-    1) 수익률 winsorize (2.5%~97.5%)
-    2) 각 종목별로 (mean, std) 정규화
-    3) sklearn.preprocessing.scale 로 한 번 더 표준화
-    4) 정규화된 수익률의 공분산 행렬에 PCA 적용
-    5) pca.components_ 로 eigen portfolio 생성 (각 행의 합 = 1)
-    6) eigen portfolio 수익률 계산
     """
 
     # 1) winsorize: 각 종목(column) 기준으로 2.5%~97.5% 범위로 자름
@@ -148,7 +146,7 @@ def run_pca(returns: pd.DataFrame, n_factors: int = 4) -> PCAResult:
     # 2) 각 종목별 정규화 (z-score): (r - mean) / std
     standardized = winsorized.apply(lambda x: x.sub(x.mean()).div(x.std()), axis=0)
 
-    # 3) sklearn scale로 추가 표준화 (교과서 코드 구조 반영)
+    # 3) sklearn scale로 추가 표준화
     normed_arr = scale(standardized)  # shape: (n_samples, n_assets)
     normed_returns = pd.DataFrame(normed_arr,
                                   index=standardized.index,
@@ -165,7 +163,7 @@ def run_pca(returns: pd.DataFrame, n_factors: int = 4) -> PCAResult:
     max_factors = min(n_factors, n_assets)
     components = pca.components_[:max_factors]
 
-    # 교과서와 동일: components → DataFrame → 각 행의 합이 1이 되도록 정규화
+    # components → DataFrame → 각 행의 합이 1이 되도록 정규화
     eigen_portfolios = pd.DataFrame(components, columns=cov.columns)
     eigen_portfolios = eigen_portfolios.div(eigen_portfolios.sum(axis=1), axis=0)
     eigen_portfolios.index = [f'Factor {i+1}' for i in range(eigen_portfolios.shape[0])]
@@ -175,8 +173,7 @@ def run_pca(returns: pd.DataFrame, n_factors: int = 4) -> PCAResult:
         index=eigen_portfolios.index
     )
 
-    # 6) Market(평균 수익률) & Factor 수익률 계산
-    #    교과서 코드: returns.mul(eigen_portfolios.iloc[i]).sum(1)
+    # Market(평균 수익률) & Factor 수익률 계산
     market_ret = returns.mean(axis=1)
 
     factor_rets = {}
@@ -196,25 +193,16 @@ def run_pca(returns: pd.DataFrame, n_factors: int = 4) -> PCAResult:
         factor_returns=factor_returns,
         market_returns=market_ret
     )
-
-
-# =========================
-# 투자성향 반영 요인 타깃
-# =========================
-
 def get_risk_profile_targets(profile: str, n_factors: int) -> pd.Series:
-    """
-    투자 성향에 따라 '요인 노출' 목표 비중을 정의.
-    Factor 1을 좀 더 안정/시장, Factor 2를 성장/공격 쪽이라고 가정한 간단 버전.
-    (알고리즘과 직접적으로 연결된 부분은 아니라서, 여기서는 컨셉만 유지)
-    """
-    if profile == "Conservative":
-        base = np.array([0.5, 0.2, 0.2, 0.1])
-    elif profile == "Balanced":
-        base = np.array([0.4, 0.3, 0.2, 0.1])
-    else:  # Aggressive
-        base = np.array([0.3, 0.4, 0.2, 0.1])
 
+    base_map = {
+        "안정형":     np.array([0.40, 0.10, 0.40, 0.10]),
+        "안정추구형": np.array([0.40, 0.20, 0.30, 0.10]),
+        "위험중립형": np.array([0.35, 0.30, 0.25, 0.10]),
+        "적극투자형": np.array([0.30, 0.40, 0.20, 0.10]),
+        "공격투자형": np.array([0.25, 0.50, 0.15, 0.10]),
+    }
+    base = base_map.get(profile, base_map["위험중립형"])
     if n_factors < len(base):
         base = base[:n_factors]
     elif n_factors > len(base):
@@ -224,14 +212,8 @@ def get_risk_profile_targets(profile: str, n_factors: int) -> pd.Series:
     base = np.abs(base)
     base = base / base.sum()
 
-    idx = [f'Factor {i+1}' for i in range(n_factors)]
+    idx = [f"Factor {i+1}" for i in range(n_factors)]
     return pd.Series(base, index=idx)
-
-
-# =========================
-# 포트폴리오 요인 분석
-# =========================
-
 def analyze_portfolio(
         pca_res: PCAResult,
         portfolio_weights: pd.Series,
@@ -244,7 +226,7 @@ def analyze_portfolio(
     if abs(w.sum()) > 1e-8:
         w = w / w.sum()  # 비중 정규화
 
-    # 요인 노출도: factor k 에 대해 Σ_i w_i * eigen[k, i]
+    # 요인 노출도
     exposures = eigen.dot(w)  # index = Factor 1..k
 
     # 절댓값 기준 정규화 (노출 비중)
@@ -273,7 +255,7 @@ def analyze_portfolio(
         df = df[df['port_weight'] > 0]
         df = df.reindex(factor_weights.index).dropna()
         df = df.sort_values('factor_weight', ascending=False)
-        trim_candidates[i + 1] = df.head(5).index.tolist()   # Factor 번호는 1-based로 저장
+        trim_candidates[i + 1] = df.head(5).index.tolist()
 
     # 과소투자 요인 → 늘리기 후보
     for i in under_idx:
@@ -292,13 +274,13 @@ def analyze_portfolio(
         recent = factor_returns.iloc[-120:]
     else:
         recent = factor_returns
-    factor_momentum = (1 + recent).prod() - 1.0  # 누적 수익률
+    factor_momentum = (1 + recent).prod() - 1.0
 
     # 요약 텍스트 생성
     lines = []
     lines.append("📊 PCA 기반 포트폴리오 요인 분석 결과\n")
 
-    lines.append("1️⃣ 요인별 현재 노출 비중 (정규화된 절대값 기준):")
+    lines.append("1️⃣ 요인별 현재 노출 비중:")
     for fname, val in norm_exposures.items():
         lines.append(f"   - {fname}: {val*100:.1f}%")
 
@@ -318,11 +300,11 @@ def analyze_portfolio(
         lines.append("\n3️⃣ 요인 쏠림 진단: 투자 성향 대비 큰 쏠림은 없습니다.")
 
     if trim_candidates:
-        lines.append("\n4️⃣ 과투자 요인 관련, 비중 조정(줄이기) 후보 종목:")
+        lines.append("\n4️⃣ 과투자 요인 관련, 비중 조정 후보 종목:")
         for f_idx, tickers in trim_candidates.items():
             lines.append(f"   - Factor {f_idx}: {', '.join(tickers)}")
     if add_candidates:
-        lines.append("\n5️⃣ 과소투자 요인 관련, 비중 보강(늘리기) 후보 종목:")
+        lines.append("\n5️⃣ 과소투자 요인 관련, 비중 보강후보 종목:")
         for f_idx, tickers in add_candidates.items():
             lines.append(f"   - Factor {f_idx}: {', '.join(tickers)}")
 
@@ -356,36 +338,95 @@ class MplCanvas(FigureCanvas):
         self.setParent(parent)
         self.axes = fig.add_subplot(111)
 
-
 # =========================
-# PyQt 메인 윈도우
+# PyQt StackedWidget용 PCA 페이지
 # =========================
 
-class PCAAdvisorWindow(QMainWindow):
-    def __init__(self):
+class PCAAdvisorPage(QWidget):
+
+
+    def _go_help(self):
+        self.stack.setCurrentIndex(5)
+
+    def _go_explain(self):
+        if self.last_analysis_result is None:
+            return
+
+        # 1) 자연어 설명 생성기 호출
+        from function.PCA_Report import generate_portfolio_report
+        explanation = generate_portfolio_report(
+            self.last_analysis_result,
+            self.profile_combo.currentText()
+        )
+
+        # 2) ExplainPage 찾아서 텍스트 전달
+        explain_page = self.stack.widget(6)   # ExplainPage index
+        explain_page.set_explanation_text(explanation)
+
+        # 3) 화면 전환
+        self.stack.setCurrentIndex(6)
+
+
+
+    def __init__(self, stack):
         super().__init__()
+        self.stack = stack   # 🔹 AppWindow(QStackedWidget) 참조
         self.setWindowTitle("PCA 기반 포트폴리오 요인 분석 & 추천 (미국/한국 주식)")
         self.resize(1200, 800)
 
-        main_widget = QWidget()
-        main_layout = QHBoxLayout(main_widget)
+        # ---- 전체 레이아웃: 상단 타이틀 + 콘텐츠 ----
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(32, 24, 32, 24)
+        root_layout.setSpacing(24)
 
-        # ----- 좌측: 입력 패널 -----
-        input_panel = QWidget()
-        input_layout = QVBoxLayout(input_panel)
+        # 상단 타이틀 / 서브타이틀 (HomePage 느낌 유지)
+        header_title = QLabel("PCA 기반 포트폴리오 요인 분석")
+        header_title.setObjectName("title")
+        header_title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        header_subtitle = QLabel(
+            "투자 성향에 맞는 요인별 쏠림과 리밸런싱 가이드를 Fin GPT가 정리해 드립니다."
+        )
+        header_subtitle.setObjectName("subtitle")
+        header_subtitle.setWordWrap(True)
+
+        root_layout.addWidget(header_title)
+        root_layout.addWidget(header_subtitle)
+        root_layout.addSpacing(8)
+
+        # ---- 가운데: 좌우 카드 2개 배치 ----
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(24)
+        root_layout.addLayout(content_layout, stretch=1)
+
+        # ----- 좌측: 입력 카드 ----- #
+        input_card = QFrame()
+        input_card.setObjectName("card")
+        input_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        input_layout = QVBoxLayout(input_card)
+        input_layout.setSpacing(16)
+
+        input_title = QLabel("내 포트폴리오 입력")
+        input_title.setObjectName("subtitle")
+        input_layout.addWidget(input_title)
 
         form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignTop)
+        form.setHorizontalSpacing(10)
+        form.setVerticalSpacing(10)
 
         self.ticker_edit = QLineEdit()
-        self.ticker_edit.setPlaceholderText("예: AAPL,MSFT,GOOGL,005930.KS (쉼표로 구분)")
+        self.ticker_edit.setPlaceholderText("예: AAPL, 005930.KS")
         form.addRow("보유 종목 티커들", self.ticker_edit)
 
         self.weight_edit = QLineEdit()
-        self.weight_edit.setPlaceholderText("예: 0.3,0.3,0.4 (비워두면 균등 비중)")
+        self.weight_edit.setPlaceholderText("예: 0.3,0.7 (공란 균등처리)")
         form.addRow("각 종목 비중", self.weight_edit)
 
         self.profile_combo = QComboBox()
-        self.profile_combo.addItems(["Conservative", "Balanced", "Aggressive"])
+        self.profile_combo.addItems(["안정형", "안정추구형", "위험중립형", "적극투자형", "공격투자형"])
         form.addRow("투자 성향", self.profile_combo)
 
         self.start_date = QDateEdit()
@@ -400,26 +441,45 @@ class PCAAdvisorWindow(QMainWindow):
 
         input_layout.addLayout(form)
 
+        # 실행 버튼 (동적 크기)
         self.run_button = QPushButton("분석 실행")
+        self.run_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.run_button.setMinimumHeight(44)
         self.run_button.clicked.connect(self.on_run_analysis)
+        input_layout.addSpacing(12)
         input_layout.addWidget(self.run_button)
 
-        input_layout.addStretch()
+        input_layout.addStretch(1)
 
-        # ----- 우측: 결과 탭 -----
+        # ----- 우측: 결과 카드 ----- #
+        result_card = QFrame()
+        result_card.setObjectName("card")
+        result_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        result_layout = QVBoxLayout(result_card)
+        result_layout.setSpacing(16)
+
+        result_title = QLabel("요인 분석 결과")
+        result_title.setObjectName("subtitle")
+        result_layout.addWidget(result_title)
+
+        # TabWidget 그대로 사용, 카드 안에 넣기
         self.tabs = QTabWidget()
+        self.tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Tab 1: 요약 리포트
         self.summary_text = QPlainTextEdit()
         self.summary_text.setReadOnly(True)
         tab_summary = QWidget()
         v1 = QVBoxLayout(tab_summary)
+        v1.setContentsMargins(0, 0, 0, 0)
         v1.addWidget(self.summary_text)
         self.tabs.addTab(tab_summary, "요약 리포트")
 
         # Tab 2: 요인 노출 테이블
         tab_table = QWidget()
         v2 = QVBoxLayout(tab_table)
+        v2.setContentsMargins(0, 0, 0, 0)
         self.exposure_table = QTableWidget()
         v2.addWidget(self.exposure_table)
         self.tabs.addTab(tab_table, "요인 노출도 & Target")
@@ -427,28 +487,63 @@ class PCAAdvisorWindow(QMainWindow):
         # Tab 3: 그래프
         tab_plot = QWidget()
         v3 = QVBoxLayout(tab_plot)
+        v3.setContentsMargins(0, 0, 0, 0)
+
+        label_ev = QLabel("요인별 설명분산 비율")
+        label_ev.setObjectName("story")
+        v3.addWidget(label_ev)
 
         self.canvas1 = MplCanvas(self, width=6, height=3)
-        self.canvas2 = MplCanvas(self, width=6, height=3)
-
         self.canvas1.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.canvas2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        v3.addWidget(QLabel("요인별 설명분산 비율"))
         v3.addWidget(self.canvas1)
-        v3.addWidget(QLabel("시장(평균) vs 요인 포트폴리오 누적 수익률"))
+
+        label_cum = QLabel("시장(평균) vs 요인 포트폴리오 누적 수익률")
+        label_cum.setObjectName("story")
+        v3.addWidget(label_cum)
+
+        self.canvas2 = MplCanvas(self, width=6, height=3)
+        self.canvas2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         v3.addWidget(self.canvas2)
+
         self.tabs.addTab(tab_plot, "그래프")
 
-        main_layout.addWidget(input_panel, stretch=1)
-        main_layout.addWidget(self.tabs, stretch=2)
+        result_layout.addWidget(self.tabs)
 
-        self.setCentralWidget(main_widget)
+        # 좌우 카드 레이아웃에 추가
+        content_layout.addWidget(input_card, stretch=1)
+        content_layout.addWidget(result_card, stretch=2)
 
+        # ---- 하단: 다음(완료) 버튼 ----
+        root_layout.addSpacing(16)
+        bottom_layout = QHBoxLayout()
+        bottom_layout.addStretch(1)
+        # 첫 번째 버튼: 어려워요 도와주세요 ㅠㅠ
+        self.help_button = QPushButton("어려워요 도와주세요 ㅠㅠ")
+        self.help_button.setMinimumHeight(44)
+        self.help_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.help_button.clicked.connect(self._go_help)   # 새로운 함수로 연결
+        bottom_layout.addWidget(self.help_button)
+
+        # 두 번째 버튼: 보고서 설명 듣기 (해설 페이지 이동)
+        self.explain_button = QPushButton("보고서 설명 듣기")
+        self.explain_button.setMinimumHeight(44)
+        self.explain_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.explain_button.clicked.connect(self._go_explain)  # 새로운 함수
+        bottom_layout.addWidget(self.explain_button)
+
+        root_layout.addLayout(bottom_layout)
+
+        # 마지막으로 스타일 적용
+        apply_global_style(self)
+
+        # 상태 보관용
         self.last_pca_result: Optional[PCAResult] = None
         self.last_analysis_result: Optional[AnalysisResult] = None
 
     # ------------- 이벤트 -------------
+
+
+
 
     def on_run_analysis(self):
         try:
@@ -474,7 +569,6 @@ class PCAAdvisorWindow(QMainWindow):
             QMessageBox.critical(self, "에러", f"분석 중 에러가 발생했습니다:\n{e}")
 
     # ------------- 입력 수집 -------------
-
     def collect_input(self) -> PortfolioInput:
         tickers_str = self.ticker_edit.text().strip()
         if not tickers_str:
@@ -524,7 +618,6 @@ class PCAAdvisorWindow(QMainWindow):
         return pd.Series(p_in.weights, index=p_in.tickers)
 
     # ------------- UI 업데이트 -------------
-
     def update_summary_tab(self, analysis_res: AnalysisResult):
         self.summary_text.setPlainText(analysis_res.summary_text)
 
@@ -539,7 +632,7 @@ class PCAAdvisorWindow(QMainWindow):
         self.exposure_table.setRowCount(len(factors))
         self.exposure_table.setColumnCount(3)
         self.exposure_table.setHorizontalHeaderLabels(
-            ["Factor", "현재 노출 비중(정규화)", "목표 노출 비중"]
+            ["Factor", "현재 노출 비중", "목표 노출 비중"]
         )
 
         for row, f in enumerate(factors):
@@ -549,6 +642,7 @@ class PCAAdvisorWindow(QMainWindow):
 
         self.exposure_table.resizeColumnsToContents()
 
+        # ------------- 그래프 업데이트 -------------
     def update_plot_tab(self, pca_res: PCAResult):
         # 설명분산 그래프
         self.canvas1.axes.clear()
@@ -578,12 +672,3 @@ class PCAAdvisorWindow(QMainWindow):
         self.canvas2.draw()
 
 
-def main():
-    app = QApplication(sys.argv)
-    win = PCAAdvisorWindow()
-    win.show()
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()

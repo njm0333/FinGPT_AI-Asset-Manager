@@ -8,7 +8,6 @@ class HomePage(QWidget):
         super().__init__()
         self.stack = stack
 
-        # --- 위젯 구성 ---
         self.title = QLabel("Fin GPT")
         self.title.setObjectName("title")
 
@@ -36,7 +35,7 @@ class HomePage(QWidget):
         base_delay = 0
 
         for i, w in enumerate(widgets):
-            delay = base_delay + i * 250  # 순차 지연(ms 단위)
+            delay = base_delay + i * 250
 
             def animate_widget(widget=w):
                 opacity = QGraphicsOpacityEffect()
