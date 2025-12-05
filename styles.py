@@ -8,29 +8,40 @@ def apply_global_style(widget):
             background-color: {BG_COLOR};
             font-family: 'Malgun Gothic';
         }}
+
         QPushButton {{
             background-color: {ACCENT_COLOR};
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 14px 26px;
             color: white;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: bold;
         }}
         QPushButton:hover {{
             background-color: #3B6FE0;
         }}
+
         QLabel#title {{
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 32px;
+            font-weight: 800;
             color: {PRIMARY_COLOR};
         }}
         QLabel#subtitle {{
-            font-size: 16px;
+            font-size: 18px;
             color: #555;
         }}
+        QLabel#story {{
+            font-size: 18px;
+            color: #111;
+            line-height: 150%;
+            background-color: transparent;   
+
+        }}
+
         QFrame#card {{
             background-color: white;
-            border-radius: 12px;
-            padding: 25px;
+            border-radius: 18px;
+            padding: 32px 40px;
             border: 1px solid #E5E7EB;
         }}
     """)
