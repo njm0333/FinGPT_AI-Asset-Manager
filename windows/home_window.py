@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QVBoxLayout, QGraphics
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QPoint, QTimer
 from styles import apply_global_style
 
+#done
 
 class HomePage(QWidget):
     def __init__(self, stack):

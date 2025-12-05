@@ -16,11 +16,11 @@ class ExplainPage(QWidget):
         root.setContentsMargins(32, 24, 32, 24)
         root.setSpacing(24)
 
-        title = QLabel("보고서 설명")
+        title = QLabel("보고서 분석")
         title.setObjectName("title")
         root.addWidget(title)
 
-        subtitle = QLabel("Fin GPT가 분석한 PCA 리포트를 쉽게 이해할 수 있는 버전으로 설명해 드려요.")
+        subtitle = QLabel("Fin GPT가 분석한 PCA 리포트에요.")
         subtitle.setObjectName("subtitle")
         subtitle.setWordWrap(True)
         root.addWidget(subtitle)

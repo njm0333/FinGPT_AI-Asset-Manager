@@ -341,6 +341,7 @@ class MplCanvas(FigureCanvas):
 # =========================
 # PyQt StackedWidget용 PCA 페이지
 # =========================
+#done
 
 class PCAAdvisorPage(QWidget):
 

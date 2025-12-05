@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from styles import apply_global_style
 
+#done
 
 class HelpPage(QWidget):
     def __init__(self, stack):

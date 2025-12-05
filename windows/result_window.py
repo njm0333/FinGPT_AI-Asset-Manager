@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 
 from styles import apply_global_style
 
+#done
 
 class ResultPage(QWidget):
     def __init__(self, stack):

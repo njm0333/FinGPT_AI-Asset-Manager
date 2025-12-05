@@ -1,6 +1,7 @@
-# =========================
-# 투자 성향 설명 / 자연어 리포트 유틸
-# =========================
+from __future__ import annotations
+from typing import List, Dict
+import numpy as np
+
 
 RISK_PROFILES = {
     "안정형": "예금이나 적금 수준의 수익률을 기대하며, 투자원금에 손실이 발생하는 것을 원하지 않습니다. "
@@ -23,10 +24,6 @@ _RISK_LEVEL = {
 
 
 def _factor_role_comment(factor_idx: int, factor_name: str, n_factors: int) -> str:
-    """
-    Factor 1, 2, 3... 에 대해 초보자용 간단 역할 설명.
-    PCA 특성상 '정답'은 아니지만, 보통 이렇게 해석되는 경우가 많다 수준으로 정리.
-    """
     base = f"{factor_name}는 PCA로 추출된 요인 중 {factor_idx}번째로 중요한 요인입니다. "
 
     if factor_idx == 1:
@@ -42,9 +39,6 @@ def _factor_role_comment(factor_idx: int, factor_name: str, n_factors: int) -> s
 
 
 def _factor_short_name(factor_idx: int) -> str:
-    """
-    브릿지 문장에 쓰기 위한 아주 짧은 설명 태그.
-    """
     if factor_idx == 1:
         return "시장 전체 방향 요인"
     elif factor_idx == 2:
@@ -56,9 +50,6 @@ def _factor_short_name(factor_idx: int) -> str:
 
 
 def _diff_comment(actual: float, target: float) -> str:
-    """
-    실제 노출과 목표 노출의 차이를 쉬운 말로 요약.
-    """
     diff = actual - target
     gap = abs(diff)
 
@@ -82,9 +73,6 @@ def _diff_comment(actual: float, target: float) -> str:
 
 
 def _momentum_comment(v: float) -> str:
-    """
-    최근 6개월 누적 수익률에 대한 한 줄 해석.
-    """
     if np.isnan(v):
         return "데이터가 부족해 최근 성과를 평가하기 어렵습니다."
     if v > 0.50:
@@ -102,9 +90,6 @@ def _momentum_comment(v: float) -> str:
 
 
 def _join_code_list(codes: List[str], max_len: int = 5) -> str:
-    """
-    종목 코드 리스트를 자연스럽게 문자열로 합쳐줌.
-    """
     if not codes:
         return ""
     if len(codes) == 1:
@@ -117,122 +102,101 @@ def _join_code_list(codes: List[str], max_len: int = 5) -> str:
 
 
 def _risk_profile_brief(name: str) -> str:
-    """
-    투자 성향 이름을 한 줄로 짧게 설명.
-    """
     level = _RISK_LEVEL.get(name, 3)
     if level <= 2:
-        return "전반적으로 **원금 손실을 크게 원치 않는, 비교적 안정 성향**에 가깝습니다."
+        return "전반적으로 원금 손실을 크게 원치 않는, 비교적 안정 성향에 가깝습니다."
     elif level == 3:
-        return "전반적으로 **수익과 위험을 균형 있게 바라보는 성향**입니다."
+        return "전반적으로 수익과 위험을 균형 있게 바라보는 성향입니다."
     else:
-        return "전반적으로 **수익을 위해 변동성을 감수할 수 있는 공격적인 성향**입니다."
+        return "전반적으로 수익을 위해 변동성을 감수할 수 있는 공격적인 성향입니다."
 
 
 def generate_portfolio_report(
-        analysis: AnalysisResult,
+        analysis: "AnalysisResult",
         risk_profile_name: str,
-        risk_profiles: Dict[str, str] = None
+        risk_profiles: Dict[str, str] | None = None
 ) -> str:
-    """
-    AnalysisResult + 투자 성향 이름을 받아
-    '스토리텔링' 형식의 자연어 리포트 문자열을 생성한다.
-    (LEVEL 2: 룰 기반 + 문장 생성 혼합 방식)
-    """
     if risk_profiles is None:
         risk_profiles = RISK_PROFILES
 
-    exposures: pd.Series = analysis.exposures
-    norm_exp: pd.Series = analysis.norm_exposures
-    target: pd.Series = analysis.target_exposures
-    factor_momentum: pd.Series = analysis.factor_momentum
+    exposures = analysis.exposures
+    norm_exp = analysis.norm_exposures
+    target = analysis.target_exposures
+    factor_momentum = analysis.factor_momentum
 
-    factors = list(norm_exp.index)  # ["Factor 1", "Factor 2", ...]
+    factors = list(norm_exp.index)
     n_factors = len(factors)
     diff = norm_exp - target
 
     over = analysis.over_factors or []
     under = analysis.under_factors or []
 
-    # 지배적인 요인(비중 가장 큰 요인)
     dominant_factor = norm_exp.idxmax()
     dom_idx = factors.index(dominant_factor) + 1
     dom_diff = diff[dominant_factor]
     dom_role = _factor_short_name(dom_idx)
 
-    # 리포트 라인들
     lines: List[str] = []
 
-    # -----------------------------
-    # 1. 제목 & 투자 성향 소개
-    # -----------------------------
-    lines.append("🌱 Fin GPT가 정리한 나의 포트폴리오 요인 리포트\n")
-    lines.append("────────────────────────────────────\n")
+    lines.append("----------------------------------------\n")
 
-    lines.append("【1】 나의 투자 성향 한 번 더 정리하기\n")
-    lines.append(f"- 투자 성향: **{risk_profile_name}**")
+    lines.append("[1] 나의 투자 성향 한 번 더 정리하기\n")
+    lines.append(f"· 투자 성향: {risk_profile_name}")
     profile_desc = risk_profiles.get(risk_profile_name, "")
     if profile_desc:
-        lines.append(f"- 성향 설명: {profile_desc}")
-    lines.append(f"- 한 줄 요약: {_risk_profile_brief(risk_profile_name)}\n")
+        lines.append(f"· 성향 설명: {profile_desc}")
+    lines.append(f"· 한 줄 요약: {_risk_profile_brief(risk_profile_name)}\n")
 
-    # -----------------------------
-    # 2. 포트폴리오 첫인상 (브릿지 문장)
-    # -----------------------------
-    lines.append("【2】 지금 포트폴리오의 첫 인상 요약\n")
+    lines.append("[2] 지금 포트폴리오의 첫 인상 요약\n")
 
     if not over and not under and abs(dom_diff) < 0.05:
         lines.append(
             "전체적으로 투자 성향과 크게 어긋나지 않는, 비교적 균형 잡힌 구조로 보입니다.\n"
-            f"다만 그중에서도 **{dominant_factor}({dom_role})** 요인의 비중이 가장 크기 때문에, "
+            f"다만 그중에서도 {dominant_factor}({dom_role}) 요인의 비중이 가장 크기 때문에, "
             "시장 환경이 이 요인에 유리한지 여부에 따라 계좌 등락폭이 함께 움직일 가능성이 큽니다.\n"
         )
     else:
         if dom_diff > 0:
             lines.append(
-                f"당신은 **{risk_profile_name}** 성향이지만, 실제 포트폴리오는 "
-                f"**{dominant_factor}({dom_role})** 쪽에 비중이 가장 많이 실려 있습니다.\n"
+                f"당신은 {risk_profile_name} 성향이지만, 실제 포트폴리오는 "
+                f"{dominant_factor}({dom_role}) 쪽에 비중이 가장 많이 실려 있습니다.\n"
             )
         else:
             lines.append(
-                f"당신은 **{risk_profile_name}** 성향이지만, 현재 포트폴리오에서 "
-                f"**{dominant_factor}({dom_role})** 요인의 비중은 목표 대비 다소 낮은 편입니다.\n"
+                f"당신은 {risk_profile_name} 성향이지만, 현재 포트폴리오에서 "
+                f"{dominant_factor}({dom_role}) 요인의 비중은 목표 대비 다소 낮은 편입니다.\n"
             )
 
         if over:
             over_names = ", ".join([f"Factor {i}" for i in over])
-            lines.append(f"- 특히 **{over_names}** 쪽으로 노출이 다소 몰려 있는 모습입니다.")
+            lines.append(f"· 특히 {over_names} 쪽으로 노출이 다소 몰려 있는 모습입니다.")
         if under:
             under_names = ", ".join([f"Factor {i}" for i in under])
-            lines.append(f"- 반대로 **{under_names}** 쪽은 성향 대비 상대적으로 노출이 부족한 편입니다.")
+            lines.append(f"· 반대로 {under_names} 쪽은 성향 대비 상대적으로 노출이 부족한 편입니다.")
 
-        lines.append("")  # 빈 줄
+        lines.append("")
 
-    # 각 요인의 의미 간단 정리
-    lines.append("각 요인이 대략 어떤 성격을 갖는지, 아주 단순화해서 정리하면 다음과 같습니다:\n")
+    lines.append("각 요인이 대략 어떤 성격을 갖는지, 아주 단순화해서 정리하면 다음과 같습니다.\n")
     for i, f in enumerate(factors, start=1):
-        lines.append(f"- {_factor_role_comment(i, f, n_factors)}")
+        lines.append(f"· {_factor_role_comment(i, f, n_factors)}")
     lines.append("")
 
-    # -----------------------------
-    # 3. 목표 비중 vs 실제 비중 비교
-    # -----------------------------
-    lines.append("【3】 투자 성향에 비춘 요인별 비중 점검\n")
-    lines.append("당신의 투자 성향을 기준으로 설정한 '목표 요인 비중'과 실제 비중을 비교하면 다음과 같습니다.\n")
+    lines.append("[3] 투자 성향에 비춘 요인별 비중 점검\n")
+    lines.append("당신의 투자 성향을 기준으로 설정한 목표 요인 비중과 실제 비중을 비교하면 다음과 같습니다.\n")
 
     for i, f in enumerate(factors, start=1):
         a = norm_exp[f]
         t = target[f]
         comment = _diff_comment(a, t)
         lines.append(
-            f"- {f}: 실제 {a*100:.1f}%, 목표 {t*100:.1f}% → {comment}"
+            f"· {f}: 실제 {a*100:.1f}%, 목표 {t*100:.1f}% → {comment}"
         )
 
-    lines.append("")  # 빈 줄
+    lines.append("")
 
     if not over and not under:
         lines.append(
-            "👉 큰 쏠림 없이, 전반적으로 투자 성향에 비교적 잘 맞는 배분 상태입니다.\n"
+            "요약하면, 큰 쏠림 없이 전반적으로 투자 성향에 비교적 잘 맞는 배분 상태입니다.\n"
         )
     else:
         pieces = []
@@ -241,44 +205,41 @@ def generate_portfolio_report(
         if under:
             pieces.append("어떤 요인들은 성향에 비해 노출이 부족한 편입니다")
         lines.append(
-            "👉 요약하면, " + " · ".join(pieces) + ". "
-                                              "장기적인 관점에서 리밸런싱을 한 번 고민해 볼 만한 구조입니다.\n"
+            "요약하면, " + " · ".join(pieces) + ". "
+                                            "장기적인 관점에서 리밸런싱을 한 번 고민해 볼 만한 구조입니다.\n"
         )
 
-    # -----------------------------
-    # 4. 쏠림과 리밸런싱 아이디어
-    # -----------------------------
-    lines.append("【4】 쏠림을 완화하거나 보완할 때 참고할 수 있는 아이디어\n")
+    lines.append("[4] 쏠림을 완화하거나 보완할 때 참고할 수 있는 아이디어\n")
 
     trim = analysis.trim_candidates or {}
     add = analysis.add_candidates or {}
 
     if trim:
-        lines.append("① **과투자된(비중이 많은) 요인 쪽에서 비중을 줄일 때** 참고할 수 있는 종목들입니다.\n")
+        lines.append("① 과투자된(비중이 많은) 요인 쪽에서 비중을 줄일 때 참고할 수 있는 종목들입니다.\n")
         for f_idx, stocks in trim.items():
             if not stocks:
                 continue
             fname = f"Factor {f_idx}"
             joined = _join_code_list(stocks)
-            lines.append(f"- {fname} 관련 비중 축소 후보: {joined}")
+            lines.append(f"· {fname} 관련 비중 축소 후보: {joined}")
         lines.append(
             "\n이 종목들은 해당 요인의 움직임에 상대적으로 민감한 편이라, "
             "비중을 조금만 줄여도 그 요인에 대한 전체 노출이 완화되는 효과가 있을 수 있습니다.\n"
         )
     else:
         lines.append(
-            "현재 뚜렷하게 '너무 많이 담았다'고 판단되는 요인은 크지 않아서, "
+            "현재 뚜렷하게 너무 많이 담았다고 판단되는 요인은 크지 않아서, "
             "즉시 비중 축소가 꼭 필요해 보이진 않습니다.\n"
         )
 
     if add:
-        lines.append("② **부족한 요인을 보완하기 위해 추가로 담을 때** 참고할 수 있는 종목들입니다.\n")
+        lines.append("② 부족한 요인을 보완하기 위해 추가로 담을 때 참고할 수 있는 종목들입니다.\n")
         for f_idx, stocks in add.items():
             if not stocks:
                 continue
             fname = f"Factor {f_idx}"
             joined = _join_code_list(stocks)
-            lines.append(f"- {fname} 노출을 늘릴 때 참고할 종목: {joined}")
+            lines.append(f"· {fname} 노출을 늘릴 때 참고할 종목: {joined}")
         lines.append(
             "\n위 종목들은 해당 요인에 대한 노출이 상대적으로 높은 편이라, "
             "장기적으로 조금씩 편입하면 투자 성향에 맞는 목표 비중에 가까워지는 데 도움이 될 수 있습니다.\n"
@@ -288,10 +249,7 @@ def generate_portfolio_report(
             "부족한 요인을 보완하기 위해 당장 특정 종목을 늘려야 할 정도의 쏠림은 크지 않은 편입니다.\n"
         )
 
-    # -----------------------------
-    # 5. 최근 6개월 요인 성과
-    # -----------------------------
-    lines.append("【5】 최근 6개월 동안 각 요인의 성과\n")
+    lines.append("[5] 최근 6개월 동안 각 요인의 성과\n")
     lines.append("최근 6개월 누적 수익률 기준으로, 어떤 요인이 힘을 쓰고 있었는지 정리하면 다음과 같습니다.\n")
 
     sorted_mom = factor_momentum.sort_values(ascending=False)
@@ -303,25 +261,22 @@ def generate_portfolio_report(
         worst_factor = sorted_mom.index[-1]
 
     for f, v in sorted_mom.items():
-        lines.append(f"- {f}: {v*100:.2f}% → {_momentum_comment(v)}")
+        lines.append(f"· {f}: {v*100:.2f}% → {_momentum_comment(v)}")
 
     lines.append("")
 
     if best_factor and worst_factor:
         lines.append(
-            f"👉 요약하면, 최근 6개월 동안에는 **{best_factor}** 요인이 상대적으로 가장 좋은 성과를, "
-            f"**{worst_factor}** 요인은 가장 아쉬운 성과를 보여준 편입니다.\n"
+            f"요약하면, 최근 6개월 동안에는 {best_factor} 요인이 상대적으로 가장 좋은 성과를, "
+            f"{worst_factor} 요인은 가장 아쉬운 성과를 보여준 편입니다.\n"
         )
 
-    # -----------------------------
-    # 6. 한 줄 정리 & 마무리
-    # -----------------------------
-    lines.append("【6】 한 줄로 정리하면\n")
+    lines.append("[6] 한 줄로 정리하면\n")
 
     if not over and not under:
         main_comment = (
             "투자 성향에 비해 크게 튀는 쏠림은 없고, "
-            "다만 특정 요인의 환경에 따라 계좌 등락폭이 좌우될 수 있는 '무난한 분산 포트폴리오'에 가깝습니다."
+            "다만 특정 요인의 환경에 따라 계좌 등락폭이 좌우될 수 있는 무난한 분산 포트폴리오에 가깝습니다."
         )
     else:
         parts = []
@@ -333,13 +288,12 @@ def generate_portfolio_report(
             parts.append(f"{under_names} 쪽은 성향 대비 상대적으로 노출이 적은 편입니다")
         main_comment = " / ".join(parts) + "."
 
-    lines.append(f"> {main_comment}\n")
+    lines.append(f"· 요약: {main_comment}\n")
 
     lines.append(
-        "이 리포트는 과거 데이터와 통계적 기법(PCA)으로 **포트폴리오의 구조와 성격을 설명해 주는 도구**일 뿐, "
+        "이 리포트는 과거 데이터와 통계적 기법(PCA)으로 포트폴리오의 구조와 성격을 설명해 주는 도구일 뿐, "
         "특정 종목의 매수·매도를 직접적으로 권유하는 것은 아닙니다. "
-        "다만, 앞으로 리밸런싱을 고민할 때 '어디에 쏠려 있고, 무엇을 보완할지'를 "
-        "한눈에 정리해 주는 참고용 나침반으로 활용해 주세요.\n"
+        "다만, 앞으로 리밸런싱을 고민할 때 어디에 쏠려 있고 무엇을 보완할지 한눈에 정리해 주는 참고용 나침반으로 활용해 주세요.\n"
     )
 
     return "\n".join(lines)

@@ -61,7 +61,7 @@ class StoryPage(QWidget):
 
     def _start_fadein(self):
         for i, w in enumerate(self.widgets):
-            QTimer.singleShot(i * 1, lambda w=w: self._fade_in(w))
+            QTimer.singleShot(i * 1500, lambda w=w: self._fade_in(w))
 
     def _fade_in(self, widget):
         eff = widget.graphicsEffect()

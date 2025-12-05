@@ -1,4 +1,5 @@
-# styles.py
+
+#done
 
 PRIMARY_COLOR = "#1A2A4F"   # 네이비
 ACCENT_COLOR  = "#4C7FFF"   # 파란색 포인트

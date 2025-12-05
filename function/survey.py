@@ -43,3 +43,4 @@
 #         "투자성향": risk_type,
 #         "설명": description
 #     }
+#done
