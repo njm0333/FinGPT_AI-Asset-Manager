@@ -3,6 +3,7 @@
 ## 프로젝트 문제의식 및 목표
 
 ### 1. Motivation
+<img width="1024" height="1024" alt="ChatGPT Image 2025년 12월 6일 오전 03_47_30" src="https://github.com/user-attachments/assets/4316331e-30da-4673-8f77-59484c5bcce8" />
 
 AAPL, MSFT, NVDA, AMD, TSLA, GOOGL, AMZN, META, NFLX, QQQ
 0.25, 0.20, 0.15, 0.15, 0.10, 0.05, 0.05, 0.03, 0.01, 0.01
