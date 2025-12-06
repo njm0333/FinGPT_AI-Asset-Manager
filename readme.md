@@ -72,7 +72,7 @@ AAPL, MSFT, NVDA, AMD, TSLA, GOOGL, AMZN, META, NFLX, QQQ
 - 투자 성향 및 위험 성향 유형 정의 참고  
   https://invest_test.isweb.co.kr/#:~:text=%E2%91%A3%20%EC%A0%81%EA%B7%B9%ED%88%AC...
 
-### 📌 PCA 기반 요인 분석 참고 문헌
+### 📌 PCA 기반 요인 분석 참고
 - *Machine Learning for Algorithmic Trading*  
   https://www.amazon.com/Machine-Learning-Algorithmic-Trading-alternative/dp/1839217715
 
