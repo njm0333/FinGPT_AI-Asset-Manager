@@ -65,6 +65,7 @@
 
 - 파이썬 3.11 이상을 사용하고 있다면 누구나 사용 할 수 있습니다!
 - 폴더에서 터미널을 열어 아래의 코드를 현재 파이썬 버전으로 바꿔 사용하시면 됩니다.
+- GPT API키가 필요하지 않습니다! 내장 코드로 돌아가니 편하게 사용하실 수 있습니다.
 
 ```
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
