@@ -1,0 +1,7 @@
+matplotlib==3.10.7
+numpy==2.3.5
+pandas==2.3.3
+PyQt6==6.10.0
+pyqt6_sip==13.10.2
+scikit_learn==1.7.2
+yfinance==0.2.66
