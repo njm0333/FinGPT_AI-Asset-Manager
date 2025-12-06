@@ -55,7 +55,51 @@
 
 ## 설치
 
+- 파이썬 3.11 이상을 사용하고 있다면 누구나 사용 할 수 있습니다!
+- 폴더에서 터미널을 열어 아래의 코드를 현재 파이썬 버전으로 바꿔 사용하시면 됩니다.
+
+```
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+git clone https://github.com/njm0333/FinGPT_AI-Asset-Manager.git
+cd FinGPT_AI-Asset-Manager
+py -3.14 -m venv venv
+.\venv\Scripts\activate
+py -3.14 -m pip install --upgrade pip
+py -3.14 -m pip install -r requirements.txt
+py -3.14 main.py
+```
+
+
 ## 사용법
+
+<img width="2223" height="1475" alt="image" src="https://github.com/user-attachments/assets/92dcd009-2499-4fc2-958b-8baad970fcba" />
+1. 시작 버튼을 누르면 프로그램 소개글이 천천히 생겨나며, 다음으로 넘어가기 버튼이 생깁니다.
+
+<img width="2254" height="1672" alt="image" src="https://github.com/user-attachments/assets/c69dda8c-7c7e-4d38-b3f6-8db6381a988b" />
+2. 7가지 설문에 응답하면
+
+<img width="2254" height="1672" alt="image" src="https://github.com/user-attachments/assets/1d447d51-79c3-489a-94af-1fc184cdefcf" />
+3. 설문자의 투자 성향을 계산하여 간략히 보여줍니다
+
+<img width="2254" height="1672" alt="image" src="https://github.com/user-attachments/assets/a232b70c-ac71-45f8-8648-3aa4a886a7a1" />
+4. 현재 포트폴리오를 분석할 수 있습니다
+
+  - 현재 보유하고 있는 주식/ETF 종목들의 티커를 넣으면 작동합니다(티커는 한/미 주식 둘 다 가능합니다!)
+
+  - 각 종목의 비중을 소수점 단위로 넣고
+    
+  - 투자 성향을 고르면 분석이 시작됩니다
+
+<img width="2254" height="1672" alt="image" src="https://github.com/user-attachments/assets/18816aa5-d9f2-47f5-ace7-48dc1a4264a7" />
+5. 용어가 어렵다면 설명창이 있습니다
+
+<img width="2254" height="1672" alt="image" src="https://github.com/user-attachments/assets/bf631bea-2b8b-4e16-bdf0-eea358aedf02" />
+6. 분석이 완료된 후 모습입니다
+
+<img width="2254" height="1672" alt="image" src="https://github.com/user-attachments/assets/2d788f99-b242-429d-8ca3-b27fbde6a496" />
+7. 완료한 분석에 대한 보고서를 볼 수 있습니다.
+
+
 
 ## 전체 기능 및 구현 설명 _ for dev
 
